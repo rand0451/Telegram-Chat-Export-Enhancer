@@ -128,7 +128,7 @@ Favorites are now managed inline, not through the context menu.
 
 Runs entirely client-side; no data exfiltration. Review source if required. Data persisted is minimal preference and favorites metadata only.
 
-## [Contributing](https://github.com/rand0451/Telegram-Chat-Export-Enhancer/blob/main/CONTRIBUTING.md)
+## Contributing
 
 Issues & PRs welcome. Please:
 1. Open an issue for large feature proposals.
@@ -146,7 +146,7 @@ Issues & PRs welcome. Please:
 
 ## License
 
-MIT License. See `[LICENSE](https://github.com/rand0451/Telegram-Chat-Export-Enhancer/blob/main/LICENSE)`.
+MIT License. See [LICENSE].
 
 ---
 Enjoy a clean reading experience for your Telegram chat history. Feedback & feature suggestions are appreciated!
