@@ -24,8 +24,8 @@ This repository contains the userscript `telegram-chat-enhancer.user.js`, docume
 ## Installation
 
 Prerequisites:
-- A modern browser (Chrome, Firefox, Edge)
-- Tampermonkey, Violentmonkey, or another userscript manager
+- A browser [Firefox](https://www.firefox.com/en-US/?utm_campaign=SET_DEFAULT_BROWSER)
+- [Greasemonkey](https://addons.mozilla.org/en-US/firefox/addon/greasemonkey/) extension
 
 Install:
 1. Save the userscript file `telegram-chat-enhancer.user.js` from this repository.
