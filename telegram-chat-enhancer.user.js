@@ -1,9 +1,7 @@
 // ==UserScript==
 // @name         Telegram Chat Export Enhancer
-// @namespace    http://tampermonkey.net/
 // @version      2.0.1
 // @description  Beautiful Telegram-like formatting for chat exports with dark/light theme and animations
-// @author       You
 // @match        file:///*
 // @grant        none
 // @run-at       document-end
