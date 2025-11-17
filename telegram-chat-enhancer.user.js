@@ -3,6 +3,7 @@
 // @version      2.0.1
 // @description  Beautiful Telegram-like formatting for chat exports with dark/light theme and animations
 // @match        file:///*
+// @author 			 https://github.com/rand0451
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
@@ -108,7 +109,9 @@
             unfavorite: '⭐ Remove from Favorites',
             favoriteAdded: '⭐ Added to favorites',
             favoriteRemoved: '⭐ Removed from favorites',
-            readingMode: '📖 Reading mode'
+            readingMode: '📖 Reading mode',
+            resetFont: '↺ Reset font size',
+            fontReset: 'Font size reset to default'
         },
         ru: {
             search: 'Поиск в чате...',
@@ -163,7 +166,9 @@
             unfavorite: '⭐ Из избранного',
             favoriteAdded: '⭐ Добавлено в избранное',
             favoriteRemoved: '⭐ Удалено из избранного',
-            readingMode: '📖 Режим чтения'
+            readingMode: '📖 Режим чтения',
+            resetFont: '↺ Сбросить размер шрифта',
+            fontReset: 'Размер шрифта сброшен'
         },
         ua: {
             search: 'Пошук у чаті...',
@@ -218,7 +223,9 @@
             unfavorite: '⭐ З обраного',
             favoriteAdded: '⭐ Додано до обраного',
             favoriteRemoved: '⭐ Видалено з обраного',
-            readingMode: '📖 Режим читання'
+            readingMode: '📖 Режим читання',
+            resetFont: '↺ Скинути розмір шрифту',
+            fontReset: 'Розмір шрифту скинуто'
         }
     };
 
@@ -464,10 +471,7 @@
         menu.id = 'context-menu';
         menu.innerHTML = `
             <div class="context-item" data-action="copy">${t('copyText')}</div>
-            <div class="context-item" data-action="reply">${t('reply')}</div>
-            <div class="context-item" data-action="forward">${t('forward')}</div>
             <div class="context-item" data-action="select">${t('select')}</div>
-            <div class="context-item" data-action="favorite">${t('favorite')}</div>
             <div class="context-item" data-action="link">${t('copyLink')}</div>
         `;
         document.body.appendChild(menu);
@@ -522,12 +526,6 @@
                 message.classList.toggle('selected-permanent');
                 updateSelectionCounter();
                 break;
-            case 'favorite':
-                message.classList.toggle('favorite-message');
-                const isFavorite = message.classList.contains('favorite-message');
-                saveFavorites();
-                showToast(isFavorite ? t('favoriteAdded') : t('favoriteRemoved'));
-                break;
         }
     }
 
@@ -541,7 +539,70 @@
         const favorites = JSON.parse(localStorage.getItem('telegram-favorites') || '[]');
         favorites.forEach(id => {
             const msg = document.getElementById(id);
-            if (msg) msg.classList.add('favorite-message');
+            if (msg) {
+                msg.classList.add('favorite-message');
+                addFavoriteStar(msg);
+            }
+        });
+    }
+    
+    // Add favorite star indicator to message
+    function addFavoriteStar(message) {
+        if (message.querySelector('.favorite-star')) return; // Already has star
+        
+        const star = document.createElement('div');
+        star.className = 'favorite-star';
+        star.innerHTML = '⭐';
+        star.title = t('unfavorite');
+        
+        star.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleFavorite(message);
+        });
+        
+        const body = message.querySelector('.body');
+        if (body) {
+            body.appendChild(star);
+        }
+    }
+    
+    // Toggle favorite status
+    function toggleFavorite(message) {
+        const isFavorite = message.classList.contains('favorite-message');
+        
+        if (isFavorite) {
+            // Remove from favorites
+            message.classList.remove('favorite-message');
+            const star = message.querySelector('.favorite-star');
+            if (star) star.remove();
+            showToast(t('favoriteRemoved'));
+        } else {
+            // Add to favorites
+            message.classList.add('favorite-message');
+            addFavoriteStar(message);
+            showToast(t('favoriteAdded'));
+        }
+        
+        saveFavorites();
+    }
+    
+    // Add favorite toggle to all messages
+    function addFavoriteStarsToMessages() {
+        document.querySelectorAll('.message.default').forEach(msg => {
+            const addBtn = document.createElement('div');
+            addBtn.className = 'favorite-add-btn';
+            addBtn.innerHTML = '☆';
+            addBtn.title = t('favorite');
+            
+            addBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleFavorite(msg);
+            });
+            
+            const body = msg.querySelector('.body');
+            if (body && !msg.querySelector('.favorite-add-btn')) {
+                body.appendChild(addBtn);
+            }
         });
     }
 
@@ -594,6 +655,43 @@
             showKeyboardHelp();
         });
     }
+    
+    // Create language selector dropdown
+    function createLanguageSelector() {
+        const langBtn = document.createElement('div');
+        langBtn.id = 'language-selector';
+        const flags = { en: '🇬🇧', ru: '🇷🇺', ua: '🇺🇦' };
+        langBtn.innerHTML = flags[currentLang];
+        langBtn.title = t('language');
+        document.body.appendChild(langBtn);
+        
+        const dropdown = document.createElement('div');
+        dropdown.id = 'language-dropdown';
+        dropdown.innerHTML = `
+            <div class="lang-option" data-lang="en">🇬🇧 English</div>
+            <div class="lang-option" data-lang="ru">🇷🇺 Русский</div>
+            <div class="lang-option" data-lang="ua">🇺🇦 Українська</div>
+        `;
+        document.body.appendChild(dropdown);
+        
+        langBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('visible');
+        });
+        
+        document.querySelectorAll('.lang-option').forEach(option => {
+            option.addEventListener('click', () => {
+                currentLang = option.dataset.lang;
+                localStorage.setItem('telegram-lang', currentLang);
+                location.reload();
+            });
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            dropdown.classList.remove('visible');
+        });
+    }
 
     // Create theme toggle button
     function createThemeToggle() {
@@ -642,6 +740,37 @@
             margin: 0;
             padding: 0;
             transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+            scroll-behavior: smooth;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bgSecondary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar);
+            border-radius: 5px;
+            transition: background 0.2s ease;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--scrollbarHover);
+        }
+        
+        /* Smooth selection */
+        ::selection {
+            background: var(--textLink);
+            color: white;
         }
 
         /* Theme toggle button */
@@ -704,6 +833,86 @@
         #help-button:active {
             transform: scale(0.95);
         }
+        
+        /* Language dropdown styles (used inside Help) */
+        .help-language {
+            position: relative;
+            display: inline-block;
+        }
+        .help-language .lang-button {
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bgMessage);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+        .help-language .lang-button:hover {
+            background: var(--bgHover);
+        }
+        .help-language .lang-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--bgMessage);
+            border-radius: 12px;
+            box-shadow: 0 12px 40px var(--shadow);
+            min-width: 160px;
+            opacity: 0;
+            transform: translateY(-10px) scale(0.95);
+            pointer-events: none;
+            transition: all 0.2s ease;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            z-index: 5;
+        }
+        .help-language .lang-dropdown.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: all;
+        }
+        
+        .lang-option {
+            padding: 14px 18px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+        
+        .lang-option::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--textLink);
+            transform: scaleY(0);
+            transition: transform 0.2s ease;
+        }
+        
+        .lang-option:hover {
+            background: var(--bgHover);
+            padding-left: 22px;
+        }
+        
+        .lang-option:hover::before {
+            transform: scaleY(1);
+        }
+        
+        .lang-option:active {
+            background: var(--bgSecondary);
+            transform: scale(0.98);
+        }
 
         /* Language selector in help */
         #help-lang-selector {
@@ -758,14 +967,61 @@
         .favorite-message {
             position: relative;
         }
-
-        .favorite-message::after {
-            content: '⭐';
+        
+        /* Favorite star indicator (shown when message is favorited) */
+        .favorite-star {
             position: absolute;
-            right: 10px;
-            top: 10px;
-            font-size: 16px;
-            opacity: 0.8;
+            top: 6px;
+            left: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 10;
+            opacity: 0.85;
+            transition: all 0.2s ease;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+            line-height: 1;
+        }
+        
+        .favorite-star:hover {
+            transform: scale(1.3) rotate(15deg);
+            opacity: 1;
+            filter: drop-shadow(0 3px 6px rgba(255, 215, 0, 0.4));
+        }
+        
+        /* Favorite add button (hollow star, appears on hover) */
+        .favorite-add-btn {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            z-index: 10;
+            opacity: 0;
+            transition: all 0.2s ease;
+            color: var(--textSecondary);
+            line-height: 1;
+        }
+        
+        .message.default:hover .favorite-add-btn {
+            opacity: 0.6;
+            animation: subtlePulse 2s ease-in-out infinite;
+        }
+        
+        .message.default .favorite-add-btn:hover {
+            opacity: 1;
+            transform: scale(1.3);
+            color: #ffd700;
+            animation: none;
+        }
+        
+        @keyframes subtlePulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 0.8; }
+        }
+        
+        /* Hide add button when message already has favorite star */
+        .favorite-message .favorite-add-btn {
+            display: none;
         }
 
         /* Reading mode */
@@ -774,6 +1030,7 @@
         body.reading-mode #search-toggle,
         body.reading-mode #date-navigation,
         body.reading-mode #scroll-to-top,
+        body.reading-mode #language-selector,
         body.reading-mode #message-counter {
             opacity: 0.2;
             pointer-events: none;
@@ -1039,20 +1296,32 @@
             border-left: 3px solid var(--textLink);
         }
 
+        /* Ensure favorite controls remain interactive when selected */
+        .selected-permanent .favorite-add-btn,
+        .selected-permanent .favorite-star {
+            opacity: 0.9;
+            pointer-events: all;
+            z-index: 20;
+        }
+
         /* Toast notifications */
         .toast {
             position: fixed;
             bottom: 100px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: rgba(0, 0, 0, 0.8);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(40, 40, 40, 0.9));
             color: white;
-            padding: 12px 24px;
-            border-radius: 20px;
+            padding: 14px 28px;
+            border-radius: 24px;
             font-size: 14px;
+            font-weight: 500;
             z-index: 10002;
             opacity: 0;
-            transition: transform 0.3s ease, opacity 0.3s ease;
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .toast.visible {
@@ -1239,6 +1508,18 @@
         .message.default:hover {
             background: var(--bgHover) !important;
             border-radius: 8px;
+            transform: translateX(2px);
+        }
+        
+        /* Date becomes more visible on hover */
+        .message.default .date {
+            transition: opacity 0.2s ease, color 0.2s ease;
+            opacity: 0.7;
+        }
+        
+        .message.default:hover .date {
+            opacity: 1;
+            color: var(--textLink);
         }
 
         .message.default.joined {
@@ -1643,6 +1924,25 @@
                 opacity: 1;
             }
         }
+        
+        @keyframes ripple {
+            0% {
+                transform: scale(0);
+                opacity: 0.6;
+            }
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+        
+        /* Add hover glow effect to interactive elements */
+        #theme-toggle:hover,
+        #help-button:hover,
+        #language-selector:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 6px 20px var(--shadow), 0 0 20px rgba(51, 144, 236, 0.3);
+        }
 
         /* Image viewer overlay */
         #image-viewer {
@@ -1758,7 +2058,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
             z-index: 10003;
             display: flex;
             align-items: center;
@@ -1774,10 +2075,13 @@
         .stats-content, .help-content {
             background: var(--bgMessage);
             border-radius: 16px;
+            border: 1px solid var(--border);
             padding: 32px;
             max-width: 600px;
             width: 90%;
-            box-shadow: 0 8px 32px var(--shadow);
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 1px var(--border);
             transform: scale(0.9);
             transition: transform 0.3s ease;
         }
@@ -1925,24 +2229,51 @@
 
     // Create image viewer
     function createImageViewer() {
-        const viewer = document.createElement('div');
-        viewer.id = 'image-viewer';
-        viewer.innerHTML = '<img />';
-        document.body.appendChild(viewer);
-
-        viewer.addEventListener('click', () => {
-            viewer.classList.remove('active');
-        });
-
-        // Add click handlers to all images
-        document.querySelectorAll('.photo, .video_file_wrap img').forEach(img => {
-            img.style.cursor = 'zoom-in';
+        // Handle photos - open directly
+        document.querySelectorAll('.photo').forEach(img => {
+            img.style.cursor = 'pointer';
             img.addEventListener('click', (e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                const viewerImg = viewer.querySelector('img');
-                viewerImg.src = img.src;
-                viewer.classList.add('active');
-            });
+                window.open(img.src, '_blank');
+            }, true);
+        });
+        
+        // Handle videos - open actual video file, not thumbnail
+        document.querySelectorAll('.video_file_wrap').forEach(videoWrap => {
+            videoWrap.style.cursor = 'pointer';
+            const videoUrl = videoWrap.href;
+            
+            videoWrap.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (videoUrl) {
+                    window.open(videoUrl, '_blank');
+                }
+            }, true);
+            
+            // Also handle clicks on video thumbnail inside
+            const thumb = videoWrap.querySelector('img.video_file');
+            if (thumb) {
+                thumb.style.cursor = 'pointer';
+                thumb.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (videoUrl) {
+                        window.open(videoUrl, '_blank');
+                    }
+                }, true);
+            }
+        });
+        
+        // Handle download links
+        document.querySelectorAll('a[download]').forEach(link => {
+            link.style.cursor = 'pointer';
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(link.href, '_blank');
+            }, true);
         });
     }
 
@@ -1988,6 +2319,7 @@
         setupKeyboardShortcuts();
         enhanceInteractivity();
         addReadIndicators();
+        addFavoriteStarsToMessages();
         loadFavorites();
         lazyLoadImages();
         
@@ -2038,6 +2370,12 @@
                 adjustFontSize(-1);
             }
             
+            // 0 - Reset font size
+            if (e.key === '0' && !e.ctrlKey && !e.altKey && document.activeElement.tagName !== 'INPUT') {
+                e.preventDefault();
+                resetFontSize();
+            }
+            
             // N/P - Navigate between dates
             if (e.key === 'n' && !e.ctrlKey && !e.altKey && document.activeElement.tagName !== 'INPUT') {
                 e.preventDefault();
@@ -2064,11 +2402,7 @@
                 showDetailedStats();
             }
             
-            // E - Export to JSON
-            if (e.key === 'e' && !e.ctrlKey && !e.altKey && document.activeElement.tagName !== 'INPUT') {
-                e.preventDefault();
-                exportToJSON();
-            }
+            // (Removed) E - Export to JSON
             
             // H - Show help
             if (e.key === 'h' && !e.ctrlKey && !e.altKey && document.activeElement.tagName !== 'INPUT') {
@@ -2143,6 +2477,13 @@
         document.documentElement.style.setProperty('--message-font-size', `${newSize}px`);
         localStorage.setItem('telegram-font-size', newSize);
         showToast(`${t('fontSize')}: ${newSize}px`);
+    }
+    
+    // Reset font size to default
+    function resetFontSize() {
+        document.documentElement.style.setProperty('--message-font-size', '14px');
+        localStorage.setItem('telegram-font-size', '14');
+        showToast(t('fontReset'));
     }
     
     // Show detailed statistics
@@ -2223,94 +2564,15 @@
             });
         }, 10);
     }
-    
-    // Export to JSON
-    function exportToJSON() {
-        const messages = [];
-        document.querySelectorAll('.message.default').forEach(msg => {
-            const data = {
-                id: msg.id,
-                from: msg.querySelector('.from_name')?.textContent.trim(),
-                date: msg.querySelector('.date')?.textContent.trim(),
-                text: msg.querySelector('.text')?.textContent.trim(),
-                hasPhoto: !!msg.querySelector('.photo'),
-                hasVideo: !!msg.querySelector('.video_file, .media_video'),
-                hasVoice: !!msg.querySelector('.media_voice_message')
-            };
-            messages.push(data);
-        });
-        
-        const json = JSON.stringify({ messages, exportDate: new Date().toISOString() }, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `telegram-export-${Date.now()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        
-        showToast(t('exportComplete'));
-    }
-    
-    // Export to TXT
-    function exportToTXT() {
-        let txt = '';
-        document.querySelectorAll('.message.default').forEach(msg => {
-            const from = msg.querySelector('.from_name')?.textContent.trim();
-            const date = msg.querySelector('.date')?.textContent.trim();
-            const text = msg.querySelector('.text')?.textContent.trim();
-            txt += `[${date}] ${from}: ${text}\n\n`;
-        });
-        
-        const blob = new Blob([txt], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `telegram-export-${Date.now()}.txt`;
-        a.click();
-        URL.revokeObjectURL(url);
-        
-        showToast(t('exportComplete'));
-    }
-    
-    // Export to HTML
-    function exportToHTML() {
-        const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Telegram Export</title>
-<style>body{font-family:sans-serif;max-width:800px;margin:0 auto;padding:20px}.message{margin:10px 0;padding:10px;border-radius:8px;background:#f0f0f0}.from{font-weight:bold;color:#3390ec}.date{color:#999;font-size:12px}.text{margin-top:5px}</style>
-</head>
-<body>
-${Array.from(document.querySelectorAll('.message.default')).map(msg => {
-            const from = msg.querySelector('.from_name')?.textContent.trim();
-            const date = msg.querySelector('.date')?.textContent.trim();
-            const text = msg.querySelector('.text')?.textContent.trim();
-            return `<div class="message"><div class="from">${from}</div><div class="date">${date}</div><div class="text">${text}</div></div>`;
-        }).join('')}
-</body>
-</html>`;
-        
-        const blob = new Blob([html], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `telegram-export-${Date.now()}.html`;
-        a.click();
-        URL.revokeObjectURL(url);
-        
-        showToast(t('exportComplete'));
-    }
-    
+            
     // Show keyboard help
     function showKeyboardHelp() {
         const helpHTML = `
             <div id="keyboard-help" class="help-modal">
                 <div class="help-content">
-                    <h2>${t('keyboard')}</h2>
+                    <h2>Help</h2>
                     <div class="help-section">
-                        <h3>⌨️ ${t('keyboard')}</h3>
+                        <h3> ${t('keyboard')}</h3>
                         <div class="help-grid">
                             <div class="help-item"><kbd>/</kbd> — ${t('search_key')}</div>
                             <div class="help-item"><kbd>T</kbd> — ${t('theme_key')}</div>
@@ -2318,9 +2580,9 @@ ${Array.from(document.querySelectorAll('.message.default')).map(msg => {
                             <div class="help-item"><kbd>M</kbd> — ${t('media_key')}</div>
                             <div class="help-item"><kbd>R</kbd> — ${t('readingMode')}</div>
                             <div class="help-item"><kbd>+</kbd> / <kbd>-</kbd> — ${t('font_key')}</div>
+                            <div class="help-item"><kbd>0</kbd> — ${t('resetFont')}</div>
                             <div class="help-item"><kbd>N</kbd> / <kbd>P</kbd> — ${t('nav_key')}</div>
                             <div class="help-item"><kbd>S</kbd> — ${t('stats_key')}</div>
-                            <div class="help-item"><kbd>E</kbd> — ${t('export_key')}</div>
                             <div class="help-item"><kbd>F</kbd> — ${currentLang === 'en' ? 'Show favorites' : currentLang === 'ru' ? 'Показать избранное' : 'Показати обране'}</div>
                             <div class="help-item"><kbd>Home</kbd> / <kbd>End</kbd> — ${t('nav_arrows')}</div>
                             <div class="help-item"><kbd>Esc</kbd> — ${t('close_key')}</div>
@@ -2328,10 +2590,13 @@ ${Array.from(document.querySelectorAll('.message.default')).map(msg => {
                     </div>
                     <div class="help-section">
                         <h3>🌐 ${t('language')}</h3>
-                        <div id="help-lang-selector">
-                            <div class="lang-item ${currentLang === 'en' ? 'active' : ''}" data-lang="en">🇬🇧 English</div>
-                            <div class="lang-item ${currentLang === 'ru' ? 'active' : ''}" data-lang="ru">🇷🇺 Русский</div>
-                            <div class="lang-item ${currentLang === 'ua' ? 'active' : ''}" data-lang="ua">🇺🇦 Українська</div>
+                        <div class="help-language">
+                            <button class="lang-button" id="help-lang-button"></button>
+                            <div class="lang-dropdown" id="help-lang-dropdown">
+                                <div class="lang-option" data-lang="en">🇬🇧 English</div>
+                                <div class="lang-option" data-lang="ru">🇷🇺 Русский</div>
+                                <div class="lang-option" data-lang="ua">🇺🇦 Українська</div>
+                            </div>
                         </div>
                     </div>
                     <p class="help-tip">${t('tip')}</p>
@@ -2351,10 +2616,19 @@ ${Array.from(document.querySelectorAll('.message.default')).map(msg => {
             const modal = document.getElementById('keyboard-help');
             modal.classList.add('visible');
             
-            // Language selector in help
-            document.querySelectorAll('#help-lang-selector .lang-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    currentLang = item.dataset.lang;
+            // Language dropdown in help
+            const flagFor = (lang) => ({ en: '🇬🇧', ru: '🇷🇺', ua: '🇺🇦' }[lang] || '🌐');
+            const labelFor = (lang) => ({ en: 'English', ru: 'Русский', ua: 'Українська' }[lang] || 'Language');
+            const btn = document.getElementById('help-lang-button');
+            const dd = document.getElementById('help-lang-dropdown');
+            btn.innerHTML = `${flagFor(currentLang)} ${labelFor(currentLang)}`;
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dd.classList.toggle('visible');
+            });
+            dd.querySelectorAll('.lang-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    currentLang = opt.dataset.lang;
                     localStorage.setItem('telegram-lang', currentLang);
                     location.reload();
                 });
