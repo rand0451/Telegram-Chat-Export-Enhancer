@@ -146,7 +146,7 @@ Issues & PRs welcome. Please:
 
 ## License
 
-MIT License. See [LICENSE].
+MIT License. See `LICENSE`.
 
 ---
 Enjoy a clean reading experience for your Telegram chat history. Feedback & feature suggestions are appreciated!
