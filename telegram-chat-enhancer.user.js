@@ -3,7 +3,7 @@
 // @version      2.0.1
 // @description  Beautiful Telegram-like formatting for chat exports with dark/light theme and animations
 // @match        file:///*
-// @author 			 https://github.com/rand0451
+// @author 		 https://github.com/rand0451
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
