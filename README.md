@@ -1,4 +1,4 @@
-# Telegram Chat Export Enhancer
+# Telegram Chat Export Viewer
 
 Modern, polished viewing layer for exported Telegram HTML chats. This userscript transforms the raw export into a responsive interface with themes, powerful search, favorites, navigation aids, statistics, and ergonomic keyboard shortcuts.
 
